@@ -165,8 +165,8 @@ print(f"Истинный азимут: {true_heading:.1f}°")
 # Картинки
 ## IDE
 ### Датчик температуры
-![alt text](https://github.com)
+![alt text](https://github.com/octaprog7/GeomagneticSensor/blob/master/ide_temp.png)
 ### Компоненты магнитного поля
-![alt text](https://github.com)
+![alt text](https://github.com/octaprog7/GeomagneticSensor/blob/master/ide_mag_xyz.png)
 ## Макетная плата
-![alt text](https://github.com)
+![alt text](https://github.com/octaprog7/GeomagneticSensor/blob/master/board.jpg)

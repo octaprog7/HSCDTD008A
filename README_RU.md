@@ -28,6 +28,7 @@ MIT License
 ```python
 from machine import I2C, Pin
 import hscdtd008a
+import time
 
 # Инициализация I2C
 i2c = I2C(1, scl=Pin(7), sda=Pin(6), freq=400_000)
@@ -45,14 +46,19 @@ sensor.start_measurement()
 field = sensor.get_measurement_value()
 print(f"Magnetic field: X={field.x}, Y={field.y}, Z={field.z}")
 
-# Чтение температуры
-temp = sensor.get_temperature()
-print(f"Temperature: {temp}°C")
+# Чтение температуры в цикле
+while True:
+    # Запускаем новое измерение температуры
+    sensor.enable_temp_meas(True)
+    time.sleep_ms(5)  # Ждем < 5мс
+    
+    # Читаем результат
+    temp = sensor.get_temperature()
+    print(f"Temp: {temp}°C")
+    
+    time.sleep_ms(1000) # Пауза перед следующим замером
 ```
 
-
-### 6. **Калибровка**
-```markdown
 ## Калибровка (Hard Iron Compensation)
 Для компенсации влияния постоянных магнитов и ферромагнитных материалов:
 

@@ -1,97 +1,232 @@
 # MicroPython
 # mail: goctaprog@gmail.com
 # MIT license
-import time
-import math
+"""Демонстрационный скрипт для работы с магнитометром HSCDTD008A."""
 import sys
-# Пожалуйста, прочитайте документацию на HSCDTD008A!
-# Please read the HSCDTD008A documentation!
+import math
+import time
+
 from machine import I2C, Pin
-import hscdtd008a
-from sensor_pack.bus_service import I2cAdapter
+from micropython import const
+from hscdtd008a import HSCDTD008A
+from sensor_pack_2.bus_service import I2cAdapter
+from sensor_pack_2.geosensmod import AXIS_ALL, MagRange, UpdateRates, HardIronCalibrator, ICommonMagnitometer, PerformanceProfiles
 
 
-def show_state(sen: hscdtd008a.HSCDTD008A):
-    # sen.refresh_state()
-    print(f"in standby mode: {sensor.in_standby_mode()}; hi_dynamic_range: {sensor.hi_dynamic_range};")
-    print(f"single meas mode: {sensor.is_single_meas_mode()}; continuous meas mod: {sensor.is_continuous_meas_mode()};")
+I2C_ID = const(1)
+SCL_PIN = const(7)
+SDA_PIN = const(6)
+I2C_FREQ = const(400_000)
+ITERATIONS = const(33)
+#
+calibration_on: bool = True
+
+
+def show_state(sen: ICommonMagnitometer):
+    """Выводит текущее состояние датчика."""
+    is_15bit = (sen.set_magnitude_range_index() == MagRange.G2)
+    print(f"in standby mode: {sen.in_standby_mode()}; "
+          f"15-bit mode: {is_15bit}")
+    print(f"single shot mode: {sen.is_single_shot_mode()}; "
+          f"continuous mode: {sen.is_continuously_mode()}")
+
+
+def run_calibration(sens: ICommonMagnitometer, duration_ms: int = 15_000, samples_count = 1_000) -> HardIronCalibrator:
+    """Проводит процедуру калибровки Hard Iron. Функция самодостаточна и сама настраивает датчик."""
+    width = 60
+    print("\n" + "=" * width)
+    print(" КАЛИБРОВКА ДАТЧИКА (Hard Iron Compensation)")
+    print("=" * width)
+    print("ИНСТРУКЦИЯ ДЛЯ ПОЛЬЗОВАТЕЛЯ:")
+    print("1. Убедитесь, что рядом нет посторонних магнитов или металла.")
+    print("2. Медленно вращайте датчик во всех направлениях (восьмерка/сфера).")
+    print(f"3. Продолжайте вращение в течение {duration_ms // 1000} секунд.")
+    print("=" * width)
+
+    print("\nПодготовьтесь... Начало сбора данных через 3 секунды.")
+    time.sleep(3)
+
+    # Работаю в физических единицах (Гауссы)
+    sens.set_raw_mode(False)
+
+    # Высокая частота опроса (100 Гц), чтобы не пропустить экстремумы магнитного поля при быстром вращении датчика
+    sens.set_performance_profile(PerformanceProfiles.FAST_RESPONSE)
+
+    # Включаю непрерывный режим (обязательно для стабильного потока данных)
+    sens.set_continuous_mode(True)
+    sens.start_measurement()
+    # =========================================================================
+
+    # Вычисляю, как часто НУЖНО опрашивать датчик
+    ideal_interval_ms = duration_ms // samples_count
+    sleep_time_ms = max(1, min(ideal_interval_ms, sens.get_conversion_cycle_time() + 2))
+
+    print(f"Сбор данных запущен! Период опроса датчика: {sleep_time_ms} мс. Начинайте вращать датчик...\n")
+
+    cal = HardIronCalibrator()
+    start_time = time.ticks_ms()
+    samples = 0
+
+    while time.ticks_diff(time.ticks_ms(), start_time) < duration_ms:
+        if sens.is_data_ready():
+            # Явный вызов, а не использование итератора.
+            data = sens.get_measurement_value(AXIS_ALL)
+
+            if data is not None:
+                cal.update(data)
+                samples += 1
+                # Визуальный индикатор прогресса
+                if samples % 15 == 0:
+                    print(".", end="")
+
+        time.sleep_ms(sleep_time_ms)
+
+    print(f"\n\nСбор данных завершен. Собрано образцов: {samples}")
+
+    if samples < samples_count:
+        print(f"ВНИМАНИЕ: Собрано слишком мало данных <{samples_count}. Калибровка может быть неточной!")
+        print("Убедитесь, что датчик был подключен и находился в активном режиме!")
+    cal.calculate_offsets()
+
+    return cal
+
+
+def show_calibration_offsets(cal: HardIronCalibrator):
+    """Выводит вычисленные смещения (offsets) калибратора в консоль."""
+    width = 45
+    print("\n" + "=" * width)
+    print(" РЕЗУЛЬТАТЫ КАЛИБРОВКИ (Смещения)")
+    print("=" * width)
+    if cal.is_calibrated():
+        print(f" Смещение по оси X (Offset X): {cal.offset_x:>8.4f} G")
+        print(f" Смещение по оси Y (Offset Y): {cal.offset_y:>8.4f} G")
+        print(f" Смещение по оси Z (Offset Z): {cal.offset_z:>8.4f} G")
+    else:
+        print(" Калибровка не выполнена. Смещения равны 0.0000 G")
+    print("=" * width + "\n")
 
 
 if __name__ == '__main__':
-    # пожалуйста установите выводы scl и sda в конструкторе для вашей платы, иначе ничего не заработает!
-    # please set scl and sda pins for your board, otherwise nothing will work!
-    # https://docs.micropython.org/en/latest/library/machine.I2C.html#machine-i2c
-    # i2c = I2C(0, scl=Pin(13), sda=Pin(12), freq=400_000) # для примера
-    # bus =  I2C(scl=Pin(4), sda=Pin(5), freq=100000)   # на esp8266    !
-    # Внимание!!!
-    # Замените id=1 на id=0, если пользуетесь первым портом I2C !!!
-    # Warning!!!
-    # Replace id=1 with id=0 if you are using the first I2C port !!!
-    # i2c = I2C(0, scl=Pin(13), sda=Pin(12), freq=400_000) # для примера
+    # =========================================================================
+    # Инициализация I2C
+    # =========================================================================
+    # Замените id, scl, sda на выводы вашей платы!
+    i2c = I2C(id=I2C_ID, scl=Pin(SCL_PIN), sda=Pin(SDA_PIN), freq=I2C_FREQ)  # Raspberry Pi Pico
+    adapter = I2cAdapter(i2c)
 
-    # i2c = I2C(id=1, scl=Pin(27), sda=Pin(26), freq=400_000)  # on Arduino Nano RP2040 Connect and Pico W tested!
-    i2c = I2C(id=1, scl=Pin(7), sda=Pin(6), freq=400_000)  # create I2C peripheral at frequency of 400kHz
-    adapter = I2cAdapter(i2c)  # адаптер для стандартного доступа к шине
+    dly: int = 25 # ms
+    # max_cnt = ITERATIONS
 
-if __name__ == '__main__':
-    dly: int = 250
-    max_cnt = 30
-    sensor = hscdtd008a.HSCDTD008A(adapter)
-    sensor.start_measure(continuous_mode=False)  # включаю датчик. single shot mode (force mode)
-    print(f"Sensor id: {sensor.get_id()}")
-    print(f"Offset_drift_values: {sensor.offset_drift_values}")
+    # =========================================================================
+    # Создание экземпляра датчика
+    # =========================================================================
+    sensor = HSCDTD008A(adapter)
+    print(f"Sensor ID: 0x{sensor.get_id():02X} (ожидается 0x49)")
+    print(f"Offset drift values: {sensor.offset_drift_values}")
     print(16 * "_")
     show_state(sensor)
     print(16 * "_")
-    test_result = sensor.perform_self_test()
-    if not test_result:
-        print("Sensor not pass self test!!! Broken or invalid sensor mode!!!")
-        sys.exit(1)
-    print("Sensor self test passed!")
-    sensor.enable_temp_meas(True)  # запускаю измерение температуры
-    print("Sensor temperature measurement!")
-    print(16 * "_")
+
+    # =========================================================================
+    # Самопроверка (Self Test)
+    # =========================================================================
+    # Для self test датчик должен быть в Active Mode
+    sensor.set_continuous_mode(False)
+    sensor.set_update_rate_index(UpdateRates.HZ_10)
+    sensor.start_measurement()
+
+    make_self_test = True
+
+    if make_self_test:
+        test_result = sensor.perform_self_test()
+        if not test_result:
+            print("Sensor NOT passed self test! Broken or invalid sensor mode!")
+        else:
+            print("Sensor self test passed!")
+        print(16 * "_")
+
+    # =========================================================================
+    # Измерение температуры (в режиме Force State)
+    # =========================================================================
+    print("Temperature measurement (Force mode)!")
+    sensor.set_continuous_mode(False)
+    sensor.start_measurement()
     show_state(sensor)
-    print(16 * "_")
+    sensor.enable_temp_meas(True)  # Запускаем измерение температуры
+
     cnt = 0
-    while cnt < max_cnt:
-        status = sensor.get_status()
-        if status[3]:   # TRDY flag from STAT1 reg
+    while cnt < ITERATIONS:
+        status = sensor.get_data_status()
+        if status.DataReady or status.DataOverrun:
             temp = sensor.get_temperature()
             print(f"Sensor temperature: {temp} ℃")
+            # Для следующего замера нужно снова запустить измерение
+            sensor.start_measurement()
             sensor.enable_temp_meas(True)
         else:
-            print(f"status: {status}")
+            print(f"status: DRDY={status.DataReady}, DOR={status.DataOverrun}, "
+                  f"FFU={status.FIFOfullAlarm}")
         time.sleep_ms(dly)
         cnt += 1
 
     print(16 * "_")
+
+    # Hard Iron калибровка
+    calib = run_calibration(sensor)
+    # показ результатов калибровки
+    show_calibration_offsets(calib)
+    
+    # =========================================================================
+    # Измерение магнитного поля (Force State - однократные измерения)
+    # =========================================================================
+    print("Magnetic field measurement! Force mode!")
+    sensor.set_continuous_mode(False)
+    sensor.set_update_rate_index(UpdateRates.HZ_10)
+    sensor.set_magnitude_range_index(MagRange.G2)  # 15-bit, высокая точность
+    sensor.start_measurement()
+
+    cnt = 0
+    while cnt < ITERATIONS:
+        status = sensor.get_data_status()
+        if status.DataReady or status.DataOverrun:
+            # Читаем все три оси за один вызов
+            field = sensor.get_measurement_value(AXIS_ALL)
+            print(f"Raw magnetic field: X:{field.x}; Y:{field.y}; Z:{field.z}")
+            # Запускаем следующее однократное измерение
+            sensor.start_measurement()
+        else:
+            print(f"status: DRDY={status.DataReady}, DOR={status.DataOverrun}")
+        time.sleep_ms(dly)
+        cnt += 1
+
+    print(16 * "_")
+
+    # =========================================================================
+    # Измерение магнитного поля (Normal State - непрерывные измерения)
+    # =========================================================================
+    print("Magnetic field measurement! Periodical (continuous) mode! Компенсация по результату калибровки!")
+    sensor.set_continuous_mode(True)
+    sensor.set_update_rate_index(UpdateRates.HZ_10)
+    sensor.set_magnitude_range_index(MagRange.G2)
+    sensor.set_raw_mode(False)  # Возвращать значения в Гауссах
+    sensor.start_measurement()
     show_state(sensor)
     print(16 * "_")
-    print("Magnetic field measurement! Force mode!")
     cnt = 0
-    sensor.start_measure(continuous_mode=False)
-    while cnt < max_cnt:
-        status = sensor.get_status()
-        if status[0] or status[1]:  # DRDY or DOR flag from STAT1 reg
-            field = sensor.get_axis(-1)		# все за один(!) вызов
-            sensor.start_measure(continuous_mode=False)
-            print(f"magnetic field component: X:{field[0]}; Y:{field[1]}; Z:{field[2]}")
-        else:
-            print(f"status: {status}")
+    while cnt < ITERATIONS:
+        status = sensor.get_data_status()
+        if status.DataReady:
+            # Читаем все три оси за один вызов
+            field = sensor.get_measurement_value(AXIS_ALL)
+            # компенсация по результату калибровки
+            compensated_field = calib.apply(field)
+            # Напряженность магнитного поля (модуль вектора) в Гауссах
+            mag_field_strength = math.sqrt(compensated_field.x ** 2 + compensated_field.y ** 2 + compensated_field.z ** 2)
+            print(f"Mag. field components: X:{compensated_field.x:.4f}; Y:{compensated_field.y:.4f}; "
+                  f"Z:{compensated_field.z:.4f}; |B|={mag_field_strength:.4f} G")
+            cnt += 1
         time.sleep_ms(dly)
-        cnt += 1
 
-    print("Magnetic field measurement! Periodical mode!")
-    sensor.use_offset = True
-    sensor.start_measure(continuous_mode=True)     # periodical mode
-    cnt = 0
-    while cnt < max_cnt:
-        status = sensor.get_status()
-        if status[0]:  # DRDY or DOR flag from STAT1 reg    # or status[1]
-            field = sensor.get_axis(-1)  # все за один(!) вызов
-            # напряженность магнитного поля в условных ед.
-            mag_field_strength = math.sqrt(sum(map(lambda val: val ** 2, field)))
-            print(f"magnetic field component: X:{field[0]}; Y:{field[1]}; Z:{field[2]}; {mag_field_strength}")
-        time.sleep_ms(dly)
-        # cnt += 1
+
+    print(16 * "_")
+    print("Done!")

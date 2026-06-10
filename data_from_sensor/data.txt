@@ -1,0 +1,142 @@
+Sensor ID: 0x49 (ожидается 0x49)
+Offset drift values: (0, 0, 0)
+________________
+in standby mode: False; 15-bit mode: True
+single shot mode: False; continuous mode: True
+________________
+Sensor NOT passed self test! Broken or invalid sensor mode!
+________________
+Temperature measurement (Force mode)!
+in standby mode: False; 15-bit mode: True
+single shot mode: True; continuous mode: False
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+Sensor temperature: 26 ℃
+________________
+
+============================================================
+ КАЛИБРОВКА ДАТЧИКА (Hard Iron Compensation)
+============================================================
+ИНСТРУКЦИЯ ДЛЯ ПОЛЬЗОВАТЕЛЯ:
+1. Убедитесь, что рядом нет посторонних магнитов или металла.
+2. Медленно вращайте датчик во всех направлениях (восьмерка/сфера).
+3. Продолжайте вращение в течение 15 секунд.
+============================================================
+
+Подготовьтесь... Начало сбора данных через 3 секунды.
+Сбор данных запущен! Период опроса датчика: 7 мс. Начинайте вращать датчик...
+
+..................................................................................................
+
+Сбор данных завершен. Собрано образцов: 1479
+
+=============================================
+ РЕЗУЛЬТАТЫ КАЛИБРОВКИ (Смещения)
+=============================================
+ Смещение по оси X (Offset X):   0.2010 G
+ Смещение по оси Y (Offset Y):   0.0495 G
+ Смещение по оси Z (Offset Z):   0.2730 G
+=============================================
+
+Magnetic field measurement! Force mode!
+Raw magnetic field: X:0.6915; Y:0.102; Z:0.4245
+Raw magnetic field: X:0.696; Y:0.0945; Z:0.4245
+Raw magnetic field: X:0.693; Y:0.102; Z:0.4305
+Raw magnetic field: X:0.6885; Y:0.096; Z:0.4245
+Raw magnetic field: X:0.693; Y:0.096; Z:0.4185
+Raw magnetic field: X:0.6915; Y:0.093; Z:0.405
+Raw magnetic field: X:0.6945; Y:0.1035; Z:0.3795
+Raw magnetic field: X:0.6915; Y:0.111; Z:0.339
+Raw magnetic field: X:0.6885; Y:0.108; Z:0.294
+Raw magnetic field: X:0.684; Y:0.102; Z:0.243
+Raw magnetic field: X:0.66; Y:0.1125; Z:0.1755
+Raw magnetic field: X:0.627; Y:0.12; Z:0.1095
+Raw magnetic field: X:0.5955; Y:0.1185; Z:0.0555
+Raw magnetic field: X:0.567; Y:0.111; Z:0.0165
+Raw magnetic field: X:0.543; Y:0.1095; Z:-0.0105
+Raw magnetic field: X:0.5265; Y:0.1005; Z:-0.03
+Raw magnetic field: X:0.5175; Y:0.087; Z:-0.042
+Raw magnetic field: X:0.5145; Y:0.0645; Z:-0.048
+Raw magnetic field: X:0.5085; Y:0.0525; Z:-0.051
+Raw magnetic field: X:0.4965; Y:0.045; Z:-0.063
+Raw magnetic field: X:0.489; Y:0.036; Z:-0.06599999
+Raw magnetic field: X:0.48; Y:0.027; Z:-0.075
+Raw magnetic field: X:0.4755; Y:0.027; Z:-0.0825
+Raw magnetic field: X:0.4605; Y:0.0255; Z:-0.087
+Raw magnetic field: X:0.4515; Y:0.0285; Z:-0.0975
+Raw magnetic field: X:0.435; Y:0.042; Z:-0.105
+Raw magnetic field: X:0.4155; Y:0.048; Z:-0.123
+Raw magnetic field: X:0.396; Y:0.057; Z:-0.1335
+Raw magnetic field: X:0.381; Y:0.0585; Z:-0.1395
+Raw magnetic field: X:0.366; Y:0.0705; Z:-0.1485
+Raw magnetic field: X:0.348; Y:0.072; Z:-0.153
+Raw magnetic field: X:0.3375; Y:0.078; Z:-0.1635
+Raw magnetic field: X:0.333; Y:0.078; Z:-0.1605
+________________
+Magnetic field measurement! Periodical (continuous) mode! Компенсация по результату калибровки!
+in standby mode: False; 15-bit mode: True
+single shot mode: False; continuous mode: True
+________________
+Mag. field components: X:0.1275; Y:0.0210; Z:-0.4380; |B|=0.4567 G
+Mag. field components: X:0.1380; Y:0.0255; Z:-0.4350; |B|=0.4571 G
+Mag. field components: X:0.1320; Y:0.0300; Z:-0.4365; |B|=0.4570 G
+Mag. field components: X:0.1335; Y:0.0360; Z:-0.4395; |B|=0.4607 G
+Mag. field components: X:0.1320; Y:0.0330; Z:-0.4350; |B|=0.4558 G
+Mag. field components: X:0.1275; Y:0.0285; Z:-0.4425; |B|=0.4614 G
+Mag. field components: X:0.1290; Y:0.0345; Z:-0.4380; |B|=0.4579 G
+Mag. field components: X:0.1275; Y:0.0345; Z:-0.4395; |B|=0.4589 G
+Mag. field components: X:0.1200; Y:0.0390; Z:-0.4425; |B|=0.4601 G
+Mag. field components: X:0.1245; Y:0.0330; Z:-0.4410; |B|=0.4594 G
+Mag. field components: X:0.1260; Y:0.0315; Z:-0.4410; |B|=0.4597 G
+Mag. field components: X:0.1320; Y:0.0360; Z:-0.4380; |B|=0.4589 G
+Mag. field components: X:0.1245; Y:0.0345; Z:-0.4425; |B|=0.4610 G
+Mag. field components: X:0.1245; Y:0.0345; Z:-0.4410; |B|=0.4595 G
+Mag. field components: X:0.1245; Y:0.0330; Z:-0.4365; |B|=0.4551 G
+Mag. field components: X:0.1260; Y:0.0330; Z:-0.4410; |B|=0.4598 G
+Mag. field components: X:0.1230; Y:0.0315; Z:-0.4410; |B|=0.4589 G
+Mag. field components: X:0.1275; Y:0.0330; Z:-0.4395; |B|=0.4588 G
+Mag. field components: X:0.1275; Y:0.0345; Z:-0.4395; |B|=0.4589 G
+Mag. field components: X:0.1245; Y:0.0330; Z:-0.4410; |B|=0.4594 G
+Mag. field components: X:0.1290; Y:0.0300; Z:-0.4395; |B|=0.4590 G
+Mag. field components: X:0.1275; Y:0.0345; Z:-0.4380; |B|=0.4575 G
+Mag. field components: X:0.1260; Y:0.0375; Z:-0.4395; |B|=0.4587 G
+Mag. field components: X:0.1260; Y:0.0330; Z:-0.4410; |B|=0.4598 G
+Mag. field components: X:0.1260; Y:0.0330; Z:-0.4410; |B|=0.4598 G
+Mag. field components: X:0.1260; Y:0.0375; Z:-0.4425; |B|=0.4616 G
+Mag. field components: X:0.1290; Y:0.0390; Z:-0.4365; |B|=0.4568 G
+Mag. field components: X:0.1275; Y:0.0375; Z:-0.4380; |B|=0.4577 G
+Mag. field components: X:0.1245; Y:0.0345; Z:-0.4395; |B|=0.4581 G
+Mag. field components: X:0.1305; Y:0.0345; Z:-0.4380; |B|=0.4583 G
+Mag. field components: X:0.1245; Y:0.0345; Z:-0.4380; |B|=0.4567 G
+Mag. field components: X:0.1320; Y:0.0360; Z:-0.4395; |B|=0.4603 G
+Mag. field components: X:0.1260; Y:0.0360; Z:-0.4395; |B|=0.4586 G

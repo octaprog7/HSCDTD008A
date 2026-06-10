@@ -1,4 +1,6 @@
-MicroPython module for control HSCDTD008A Geomagnetic Sensor.
+# MicroPython module for control HSCDTD008A Geomagnetic Sensor.
+
+## [На русском](README_RU.md)
 
 Just connect (VCC, GND, SDA, SCL) from your HSCDTD008A board to Arduino, ESP or any other board with MicroPython firmware.
 

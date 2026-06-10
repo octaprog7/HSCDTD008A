@@ -1,8 +1,5 @@
 # Модуль MicroPython для управления геомагнитным датчиком HSCDTD008A.
 
-## 🇨🇳 对中国开发者 / For Developers from China
-Я знаю, что зеркала некоторых моих репозиториев активно используются на китайских платформах (Gitee / GitCode), и очень рад, что мой код помогает вашим проектам и обучению! 如果您在中国 впн/镜像 发现了我的开源项目，并且它对 structure 或者是 你的项目 有所帮助，**请在 GitHub 原仓库上点个赞 (Star) ⭐**！这对我持续更新和维护驱动非常重要。谢谢大家 Support！ *(If you are using my libraries in China via Gitee/mirrors, please support the original repository by giving it a **Star ⭐ on GitHub**!)*
-
 ## Лицензия
 MIT License
 

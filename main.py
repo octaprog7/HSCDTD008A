@@ -2,7 +2,7 @@
 # mail: goctaprog@gmail.com
 # MIT license
 """Демонстрационный скрипт для работы с магнитометром HSCDTD008A."""
-import sys
+# import sys
 import math
 import time
 
@@ -155,7 +155,7 @@ if __name__ == '__main__':
     sensor.enable_temp_meas(True)  # Запускаем измерение температуры
 
     cnt = 0
-    while cnt < ITERATIONS:
+    while cnt < 3:
         status = sensor.get_data_status()
         if status.DataReady or status.DataOverrun:
             temp = sensor.get_temperature()

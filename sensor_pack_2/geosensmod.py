@@ -41,6 +41,10 @@ class UpdateRates:
     # для HSCDTD008A
     HZ_0_5 = const(6)
     HZ_20 = const(7)
+    # для RM3100
+    HZ_1 = const(8)  # 1 Гц; очень низкое энергопотребление
+    HZ_300 = const(9)  # 300 Гц; нативная частота для RM3100
+    HZ_400 = const(10)  # 400 Гц; высокая скорость для RM3100
 
 
 class OversampleLevels:

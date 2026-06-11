@@ -2,14 +2,14 @@
 # mail: goctaprog@gmail.com
 # MIT license
 """MicroPython module for HSCDTD008A Geomagnetic Sensor"""
-import time
+from time import sleep_ms
 import array
 from micropython import const
 from collections import namedtuple
 
 from sensor_pack_2.bus_service import I2cAdapter
 from sensor_pack_2.geosensmod import (MagnetometerData, UpdateRates, OversampleLevels, PerformanceProfile, MagRange,
-                                      ICommonMagnitometer, AXIS_X, AXIS_Y, AXIS_Z, AXIS_ALL)
+                                      ICommonMagnitometer, AXIS_X, AXIS_Y, AXIS_Z, AXIS_ALL, PerformanceProfiles)
 from sensor_pack_2.base_sensor import IDentifier, DeviceEx, check_value
 
 #
@@ -29,6 +29,10 @@ _REG_ADDR_STATUS = const(0x18)
 # Для перевода сырых данных в Гауссы
 # Чувствительность датчика: 0.15 μT/LSB = 0.0015 G/LSB
 _SENSITIVITY_G_PER_LSB = const(0.0015)
+
+# Константы для процедуры самопроверки (Self-Test Response register)
+_STB_READY_VALUE = const(0x55)          # Значение регистра до начала теста
+_STB_TEST_SUCCESS_VALUE = const(0xAA)   # Значение регистра после успешного теста
 
 # Обратный маппинг битов регистра в унифицированные индексы UpdateRates.
 # Индекс кортежа совпадает со значением битов ODR (0b00=0, 0b01=1, 0b10=2, 0b11=3)
@@ -133,6 +137,8 @@ class HSCDTD008A(ICommonMagnitometer, IDentifier):
         # если Истина, то get_measurement_value возвращает результат в безразмерных (сырых значениях)
         # если Ложь, то get_measurement_value возвращает результат в Гауссах!
         self._raw_mode = False
+        self._performance_profile = PerformanceProfiles.DYNAMIC_NAVIGATION  # профиль по умолчанию
+
         #
         self.setup()
         self.refresh_config()
@@ -335,34 +341,51 @@ class HSCDTD008A(ICommonMagnitometer, IDentifier):
         self._write_reg(_REG_ADDR_CTRL4, val, 1)
 
     def perform_self_test(self) -> bool:
-        """Возвращает истина, если самопроверка пройдена!
+        """Возвращает True, если самопроверка пройдена!
         Не выполняйте проверку в режиме stand by!!! Только в режиме active_power_mode!!!"""
-        if self.is_continuously_mode():
-            # ВНИМАНИЕ: Для самотестирования требуется состояние "Force State"!
-            # Принудительно переключаю в Force State
-            self.set_continuous_mode(False)
-            self.start_measurement()
 
         # Проверяю, что датчик вообще включен (Active Mode)
         if self.in_standby_mode():
-            # ОШИБКА: Датчик находится в режиме ожидания!
             return False
 
-        val = self._read_reg(_REG_ADDR_SELF_TEST_RESPONSE)[0]   # read STB reg
-        # print(f"DBG:STB initial: 0x{val:02X} (expected 0x55)")
-        if 0x55 != val:
-            return False
-        self._control_3(self_test=True)     # CTRL3.STC -> 1
+        # Гарантирую состояние Force State для стабильности теста
+        if self.is_continuously_mode():
+            self.set_continuous_mode(False)
+            self.start_measurement()
 
-        time.sleep_ms(10)
+        # Время на стабилизацию внутренних цепей В ЛЮБОМ СЛУЧАЕ!
+        sleep_ms(20)
 
-        val = self._read_reg(_REG_ADDR_SELF_TEST_RESPONSE)[0]  # read STB reg
-        # print(f"DBG:STB after STC=1: 0x{val:02X} (expected 0xAA)")
-        if 0xAA != val:
+        # Проверяю начальное значение STB (должно быть _STB_READY_VALUE)
+        val = self._read_reg(_REG_ADDR_SELF_TEST_RESPONSE)[0]
+        if val != _STB_READY_VALUE:
+            # иногда первое чтение после инициализации "мусорное"
+            sleep_ms(10)
+            val = self._read_reg(_REG_ADDR_SELF_TEST_RESPONSE)[0]
+            if val != _STB_READY_VALUE:
+                return False
+
+        # Запускаю самопроверку (CTRL3.STC -> 1)
+        self._control_3(self_test=True)
+
+        # Жду завершения внутренней процедуры
+        sleep_ms(30)
+
+        # Проверяю, что значение изменилось на _STB_TEST_SUCCESS_VALUE
+        val = self._read_reg(_REG_ADDR_SELF_TEST_RESPONSE)[0]
+        if val != _STB_TEST_SUCCESS_VALUE:
+            # Сбрасываю флаг при ошибке, чтобы датчик не "завис" в режиме теста
+            self._control_3(self_test=False)
             return False
-        val= self._read_reg(_REG_ADDR_SELF_TEST_RESPONSE)[0]
-        # print(f"DBG:STB after read: 0x{val:02X} (expected 0x55)")
-        return 0x55 == val  # read STB reg
+
+        # Повторное чтение должно вернуть исходное 0x55
+        # (чип Alps обычно сам сбрасывает флаг после успешного чтения 0xAA)
+        val = self._read_reg(_REG_ADDR_SELF_TEST_RESPONSE)[0]
+
+        # очищаю бит самопроверки
+        self._control_3(self_test=False)
+        return val == _STB_READY_VALUE
+
 
     def soft_reset(self):
         """Выполняет программный сброс датчика"""
@@ -456,7 +479,7 @@ class HSCDTD008A(ICommonMagnitometer, IDentifier):
             ctrl3_val = self._read_reg(_REG_ADDR_CTRL3)[0]
             if not (ctrl3_val & 0x01):  # Проверяем бит 0 (OCL)
                 break
-            time.sleep_ms(10)
+            sleep_ms(10)
 
         # Считываем вычисленные чипом значения смещений в локальный буфер
         self._read_field(offset=True)
@@ -573,45 +596,48 @@ class HSCDTD008A(ICommonMagnitometer, IDentifier):
         """Устанавливает или возвращает профиль производительности (ODR + OSR).
 
         Для HSCDTD008A:
-        - ODR устанавливается аппаратно (с автоматическим переключение на поддерживаемые частоты).
+        - ODR устанавливается аппаратно (с автоматическим округлением до поддерживаемых частот).
         - OSR не поддерживается аппаратно, но сохраняется для использования
           высокоуровневым кодом (например, для программного усреднения).
 
-        :param profile: Индекс из PerformanceProfiles или именованный кортеж PerformanceProfile.
-                        Если None, возвращает текущие настройки.
-        :return: PerformanceProfile с фактически установленными значениями."""
+        :param profile: Индекс из PerformanceProfiles, именованный кортеж PerformanceProfile или None.
+        :return: Именованный кортеж PerformanceProfile с фактически установленными значениями."""
         if profile is None:
-            # Режим геттера: возвращаю текущие фактические настройки
+            # Режим геттера: возвращаем текущие фактические настройки
             return PerformanceProfile(
                 update_rate=self.set_update_rate_index(),
                 oversample=self.set_oversample_index()
             )
 
         if isinstance(profile, int):
-            # Строгая проверка границ кортежа (O(1), без словарей)
-            if not (0 <= profile < len(_PROFILE_MAP)):
-                raise ValueError(f"Неизвестный профиль производительности: {profile}")
+            # проверка границ
+            check_value(profile, range(len(_PROFILE_MAP)), f"Invalid performance profile index: {profile}")
+
+            # Получаю целевой профиль из _PROFILE_MAP
             target_profile = _PROFILE_MAP[profile]
 
+            # Сохраняю индекс профиля для внутреннего состояния
+            self._performance_profile = profile
+
         elif isinstance(profile, PerformanceProfile):
-            # Пользователь передал кастомный именованный кортеж
+            # Пользователь передал кастомный(!) именованный кортеж
             target_profile = profile
 
-        else:
-            raise TypeError("profile должен быть int (PerformanceProfiles) или PerformanceProfile")
+            # Сохраняю кортеж для внутреннего состояния
+            self._performance_profile = profile
 
-        # Вызываю специализированные методы.
-        # 1. set_update_rate_index автоматически сделает переключение (например, 50 Гц -> 20 Гц)
-        #    и вернет фактически установленный индекс.
-        # 2. set_oversample_index просто сохранит значение для программного использования,
-        #    так как бит AVG в CTRL2 должен быть 0.
-        actual_odr = self.set_update_rate_index(target_profile.update_rate)
-        actual_osr = self.set_oversample_index(target_profile.oversample)
+        else:
+            raise TypeError("profile должен быть int (PerformanceProfiles), PerformanceProfile или None")
+
+        # Применяю настройки через спец. методы.
+        actual_ur = self.set_update_rate_index(target_profile.update_rate)
+        # set_oversample_index сохраняет значение для программного использования.
+        actual_os = self.set_oversample_index(target_profile.oversample)
 
         # Возвращаю профиль с тем, что реально установлено/сохранено
         return PerformanceProfile(
-            update_rate=actual_odr,
-            oversample=actual_osr
+            update_rate=actual_ur,
+            oversample=actual_os
         )
 
     def refresh_config(self):
